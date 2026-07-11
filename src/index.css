@@ -145,11 +145,15 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
   
   body {
     @apply font-sans bg-slate-50 text-slate-900 antialiased selection:bg-violet-100 selection:text-violet-900 transition-colors duration-200;
     scroll-behavior: smooth;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   /* Keyboard Navigation Focus Indicator */

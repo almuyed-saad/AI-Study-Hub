@@ -3,7 +3,9 @@
   "appId": "1:657315790983:web:eb53c8aeecdbbea7807822",
   "apiKey": "AIzaSyBilh2dgFx5xNAGXhcOrHrRH5mygJcenhY",
   "authDomain": "folkloric-badge-hln7n.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-aistudyhub-009c8a1d-0b91-44e0-ae66-16b086aa8580",
   "storageBucket": "folkloric-badge-hln7n.firebasestorage.app",
   "messagingSenderId": "657315790983",
-  "measurementId": ""
+  "measurementId": "",
+  "oAuthClientId": "657315790983-74h4hu70dblmv9m5c11sv8thksceqivd.apps.googleusercontent.com"
 }

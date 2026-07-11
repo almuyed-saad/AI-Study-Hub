@@ -122,8 +122,7 @@ async function ensureSeededSessions(userId: string) {
 }
 
 export async function getDashboardAnalytics(userId: string): Promise<DashboardAnalyticsData> {
-  // 1. Ensure study sessions exist for beautiful dashboard visuals
-  await ensureSeededSessions(userId);
+  // 1. No auto-seeding for new users (allows fresh dynamic onboarding states)
 
   // 2. Fetch all raw data required
   const userSubjects = await db

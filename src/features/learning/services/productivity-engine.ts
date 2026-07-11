@@ -45,17 +45,17 @@ export async function getAIProductivityMetrics(userId: string): Promise<Producti
   // Completion rates of study tasks, assignments, and goals
   const totalTasks = userTasks.length;
   const completedTasks = userTasks.filter((t) => t.status === "completed").length;
-  const taskRate = totalTasks > 0 ? completedTasks / totalTasks : 1.0;
+  const taskRate = totalTasks > 0 ? completedTasks / totalTasks : 0.0;
 
   const totalAssignments = userAssignments.length;
   const completedAssignments = userAssignments.filter((a) => a.status === "completed").length;
-  const assignmentRate = totalAssignments > 0 ? completedAssignments / totalAssignments : 1.0;
+  const assignmentRate = totalAssignments > 0 ? completedAssignments / totalAssignments : 0.0;
 
   // Goal average progress
   const totalGoals = userGoals.length;
   const averageGoalProgress = totalGoals > 0 
     ? userGoals.reduce((sum, g) => sum + g.progress, 0) / (totalGoals * 100) 
-    : 1.0;
+    : 0.0;
 
   // Study frequency component (number of study sessions logged in last 7 days, max 5 sessions)
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -64,13 +64,13 @@ export async function getAIProductivityMetrics(userId: string): Promise<Producti
 
   // Weighted average: 30% tasks, 30% assignments, 20% goals progress, 20% study session consistency
   const rawProductivity = (taskRate * 0.3 + assignmentRate * 0.3 + averageGoalProgress * 0.2 + studySessionFactor * 0.2) * 100;
-  const productivityScore = Math.max(15, Math.min(100, Math.round(rawProductivity)));
+  const productivityScore = Math.max(0, Math.min(100, Math.round(rawProductivity)));
 
   // --- Calculate AI Study Score (0-100) ---
   // 1. Quiz average accuracy (40%)
   const averageQuizAccuracy = attempts.length > 0
     ? attempts.reduce((sum, a) => sum + a.accuracy, 0) / attempts.length
-    : 70; // baseline accuracy if no quiz attempts
+    : 0; // baseline accuracy 0 if no quiz attempts
 
   // 2. Study Streak (consecutive study or completion days, max 7 days = 100%)
   const activityDates = new Set<string>();
@@ -99,7 +99,7 @@ export async function getAIProductivityMetrics(userId: string): Promise<Producti
   const hoursFactor = Math.min(thisWeekHours / 15, 1.0);
 
   const rawStudyScore = (averageQuizAccuracy * 0.4) + (streakFactor * 30) + (hoursFactor * 30);
-  const studyScore = Math.max(20, Math.min(100, Math.round(rawStudyScore)));
+  const studyScore = Math.max(0, Math.min(100, Math.round(rawStudyScore)));
 
   return {
     productivityScore,

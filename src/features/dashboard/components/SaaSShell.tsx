@@ -149,6 +149,7 @@ export function SaaSShell({ onLogout }: SaaSShellProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMobileThemeMenu, setShowMobileThemeMenu] = useState(false);
   const [showQuickAction, setShowQuickAction] = useState(false);
   const [isSupportOpen, setIsSupportOpen] = useState(false);
 
@@ -326,6 +327,7 @@ export function SaaSShell({ onLogout }: SaaSShellProps) {
   // Sync ref helper to close overlays on outside actions
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const mobileThemeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -334,6 +336,9 @@ export function SaaSShell({ onLogout }: SaaSShellProps) {
       }
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
         setShowProfileMenu(false);
+      }
+      if (mobileThemeRef.current && !mobileThemeRef.current.contains(e.target as Node)) {
+        setShowMobileThemeMenu(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -850,7 +855,7 @@ export function SaaSShell({ onLogout }: SaaSShellProps) {
       </AnimatePresence>
 
       {/* 3. MAIN WORKSPACE CONTAINER */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
         
         {/* PREMIUM TOP STICKY HEADER */}
         <header className="sticky top-0 z-30 h-16 border-b border-slate-200/50 bg-white/80 backdrop-blur-md dark:border-slate-800/50 dark:bg-slate-950/80 px-4 md:px-6 flex items-center justify-between">
@@ -988,6 +993,88 @@ export function SaaSShell({ onLogout }: SaaSShellProps) {
               >
                 <Moon className="h-3.5 w-3.5" />
               </button>
+            </div>
+
+            {/* Mobile Theme selector toggle */}
+            <div className="relative sm:hidden" ref={mobileThemeRef}>
+              <button
+                onClick={() => setShowMobileThemeMenu(!showMobileThemeMenu)}
+                className="p-1.5 rounded-lg border border-slate-200/60 dark:border-slate-800 bg-slate-100/30 dark:bg-slate-900/30 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 cursor-pointer flex items-center justify-center shrink-0"
+                title="Toggle theme picker"
+              >
+                {theme === "light" && <Sun className="h-4 w-4" />}
+                {theme === "sepia" && <Coffee className="h-4 w-4" />}
+                {theme === "forest" && <Leaf className="h-4 w-4" />}
+                {theme === "dark" && <Moon className="h-4 w-4" />}
+              </button>
+
+              <AnimatePresence>
+                {showMobileThemeMenu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute right-0 mt-2 w-36 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl overflow-hidden z-50 p-1 flex flex-col gap-1"
+                  >
+                    <button
+                      onClick={() => {
+                        setTheme("light");
+                        setShowMobileThemeMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer ${
+                        theme === "light"
+                          ? "bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <Sun className="h-4 w-4 shrink-0" />
+                      <span>Light</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTheme("sepia");
+                        setShowMobileThemeMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer ${
+                        theme === "sepia"
+                          ? "bg-amber-50 text-amber-800 dark:bg-amber-950/20 dark:text-amber-500"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <Coffee className="h-4 w-4 shrink-0" />
+                      <span>Sepia</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTheme("forest");
+                        setShowMobileThemeMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer ${
+                        theme === "forest"
+                          ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-400"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <Leaf className="h-4 w-4 shrink-0" />
+                      <span>Forest</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTheme("dark");
+                        setShowMobileThemeMenu(false);
+                      }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold cursor-pointer ${
+                        theme === "dark"
+                          ? "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                      }`}
+                    >
+                      <Moon className="h-4 w-4 shrink-0" />
+                      <span>Dark</span>
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Notifications Popover */}

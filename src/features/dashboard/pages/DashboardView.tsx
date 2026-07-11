@@ -76,8 +76,8 @@ export function DashboardView() {
   // Local interactive states
   const [goals, setGoals] = useState<any[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
-  const [activities, setActivities] = useState<ActivityMock[]>(RECENT_ACTIVITIES);
-  const [aiChats, setAiChats] = useState<AIConversationMock[]>(RECENT_AI_CONVERSATIONS);
+  const [activities, setActivities] = useState<ActivityMock[]>([]);
+  const [aiChats, setAiChats] = useState<AIConversationMock[]>([]);
   const [quoteIdx, setQuoteIdx] = useState(0);
 
   // Advanced AI Productivity Hub states
@@ -171,7 +171,7 @@ export function DashboardView() {
       if (assignmentsRes.success && assignmentsRes.assignments && assignmentsRes.assignments.length > 0) {
         setAssignments(assignmentsRes.assignments);
       } else {
-        setAssignments(UPCOMING_ASSIGNMENTS as any[]);
+        setAssignments([]);
       }
       if (goalsRes.success && goalsRes.goals && goalsRes.goals.length > 0) {
         const mappedGoals = goalsRes.goals.map((g: any) => ({
@@ -182,12 +182,12 @@ export function DashboardView() {
         }));
         setGoals(mappedGoals);
       } else {
-        setGoals(DAILY_GOALS);
+        setGoals([]);
       }
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
-      setGoals(DAILY_GOALS);
-      setAssignments(UPCOMING_ASSIGNMENTS as any[]);
+      setGoals([]);
+      setAssignments([]);
     } finally {
       setPlannerLoading(false);
     }
@@ -603,7 +603,7 @@ export function DashboardView() {
         {/* Compact, Pill-style Rotating Motivation Widget - Expanded */}
         <div
           onClick={rotateQuote}
-          className="cursor-pointer bg-white/70 hover:bg-white dark:bg-slate-900/60 dark:hover:bg-slate-900/90 border border-violet-100/60 dark:border-violet-900/30 p-4 rounded-xl transition-all flex flex-col gap-2 max-w-sm shrink-0 shadow-xs relative group select-none hover:scale-[1.01] active:scale-[0.99]"
+          className="cursor-pointer bg-white/70 hover:bg-white dark:bg-slate-900/60 dark:hover:bg-slate-900/90 border border-violet-100/60 dark:border-violet-900/30 p-4 rounded-xl transition-all flex flex-col gap-2 w-full sm:max-w-sm shrink-0 shadow-xs relative group select-none hover:scale-[1.01] active:scale-[0.99]"
           title="Click to cycle next quote"
         >
           <div className="absolute top-2 right-2 opacity-10 group-hover:opacity-30 transition-opacity">
@@ -630,7 +630,7 @@ export function DashboardView() {
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <StatisticsCard
           label="Socratic Strength"
-          value={isAiStatsLoading ? "..." : `${prodMetrics?.productivityScore || 75}%`}
+          value={isAiStatsLoading ? "..." : `${prodMetrics?.productivityScore !== undefined ? prodMetrics.productivityScore : 0}%`}
           change="Learning Index"
           isPositive={true}
           iconName="Brain"
@@ -639,9 +639,9 @@ export function DashboardView() {
         />
         <StatisticsCard
           label="Study Streak"
-          value={`${STREAK_INFO.current} Days`}
-          change={`Best: ${STREAK_INFO.longest} days`}
-          isPositive={true}
+          value={isAiStatsLoading ? "..." : `${prodMetrics?.streak !== undefined ? prodMetrics.streak : 0} Day${prodMetrics?.streak === 1 ? "" : "s"}`}
+          change={prodMetrics?.streak > 0 ? "You're on fire! 🔥" : "Log study to start streak"}
+          isPositive={prodMetrics?.streak > 0}
           iconName="Flame"
           color="amber"
           onClick={() => toast.info("Daily active learning streak.")}
@@ -657,9 +657,9 @@ export function DashboardView() {
         />
         <StatisticsCard
           label="Active Subjects"
-          value="4 Subjects"
-          change="Curriculum Live"
-          isPositive={true}
+          value={plannerLoading ? "..." : `${analyticsData?.subjectsStudiedCount ?? 0} Subject${analyticsData?.subjectsStudiedCount === 1 ? "" : "s"}`}
+          change={analyticsData?.subjectsStudiedCount > 0 ? "Curriculum Active" : "No active subjects yet"}
+          isPositive={(analyticsData?.subjectsStudiedCount ?? 0) > 0}
           iconName="BookOpen"
           color="blue"
           onClick={() => toast.info("Your curriculum workspace counts.")}
@@ -749,13 +749,26 @@ export function DashboardView() {
               analyticsData?.weeklyStudyHours?.map((w: any) => ({
                 label: w.day.split(" ")[0],
                 value: w.hours
-              })) || WEEKLY_CHART_DATA
+              })) || [
+                { label: "Mon", value: 0 },
+                { label: "Tue", value: 0 },
+                { label: "Wed", value: 0 },
+                { label: "Thu", value: 0 },
+                { label: "Fri", value: 0 },
+                { label: "Sat", value: 0 },
+                { label: "Sun", value: 0 }
+              ]
             }
             monthlyData={
               analyticsData?.monthlyStudyHours?.map((m: any) => ({
                 label: m.label,
                 value: m.value
-              })) || MONTHLY_CHART_DATA
+              })) || [
+                { label: "Week 1", value: 0 },
+                { label: "Week 2", value: 0 },
+                { label: "Week 3", value: 0 },
+                { label: "Week 4", value: 0 }
+              ]
             }
           />
 
