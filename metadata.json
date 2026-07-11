@@ -1,0 +1,6 @@
+{
+  "name": "AI Study Hub",
+  "description": "A premium AI-powered study platform where students can manage every aspect of their academic life, complete with smart dashboards, tasks, and notes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

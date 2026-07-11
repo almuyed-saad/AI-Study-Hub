@@ -1,0 +1,203 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import "tailwindcss";
+
+/* Enable class-based/manual dark mode in Tailwind CSS v4 */
+@variant dark (&:where(.dark, .dark *));
+
+/* Define custom theme variable sets */
+:root, .theme-light {
+  --color-app-white: #ffffff;
+  --color-app-slate-50: #f8fafc;
+  --color-app-slate-100: #f1f5f9;
+  --color-app-slate-200: #e2e8f0;
+  --color-app-slate-300: #cbd5e1;
+  --color-app-slate-400: #94a3b8;
+  --color-app-slate-500: #64748b;
+  --color-app-slate-600: #475569;
+  --color-app-slate-700: #334155;
+  --color-app-slate-800: #1e293b;
+  --color-app-slate-900: #0f172a;
+  --color-app-slate-950: #020617;
+}
+
+.theme-dark {
+  --color-app-white: #ffffff;
+  --color-app-slate-50: #f8fafc;
+  --color-app-slate-100: #f1f5f9;
+  --color-app-slate-200: #e2e8f0;
+  --color-app-slate-300: #cbd5e1;
+  --color-app-slate-400: #94a3b8;
+  --color-app-slate-500: #64748b;
+  --color-app-slate-600: #475569;
+  --color-app-slate-700: #334155;
+  --color-app-slate-800: #1e293b;
+  --color-app-slate-900: #0f172a;
+  --color-app-slate-950: #020617;
+}
+
+.theme-sepia {
+  --color-app-white: #fffdfa;
+  --color-app-slate-50: #fbf6ec;
+  --color-app-slate-100: #f4ebd0;
+  --color-app-slate-200: #ebdcb9;
+  --color-app-slate-300: #dfcea3;
+  --color-app-slate-400: #ac9982;
+  --color-app-slate-500: #8e7b65;
+  --color-app-slate-600: #78644e;
+  --color-app-slate-700: #5f4c38;
+  --color-app-slate-800: #4e3d2c;
+  --color-app-slate-900: #433422;
+  --color-app-slate-950: #2b1f13;
+}
+
+.theme-forest {
+  --color-app-white: #f7faf8;
+  --color-app-slate-50: #f0f4f1;
+  --color-app-slate-100: #e1eae4;
+  --color-app-slate-200: #cedcd2;
+  --color-app-slate-300: #b8c9bd;
+  --color-app-slate-400: #738b7c;
+  --color-app-slate-500: #566e5f;
+  --color-app-slate-600: #44594c;
+  --color-app-slate-700: #334739;
+  --color-app-slate-800: #25382b;
+  --color-app-slate-900: #1e2e24;
+  --color-app-slate-950: #111d15;
+}
+
+.dark {
+  --color-app-slate-800: #1a1e36;
+  --color-app-slate-900: #0f1225;
+  --color-app-slate-950: #080a16;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-white: var(--color-app-white);
+  --color-slate-50: var(--color-app-slate-50);
+  --color-slate-100: var(--color-app-slate-100);
+  --color-slate-200: var(--color-app-slate-200);
+  --color-slate-300: var(--color-app-slate-300);
+  --color-slate-400: var(--color-app-slate-400);
+  --color-slate-500: var(--color-app-slate-500);
+  --color-slate-600: var(--color-app-slate-600);
+  --color-slate-700: var(--color-app-slate-700);
+  --color-slate-800: var(--color-app-slate-800);
+  --color-slate-900: var(--color-app-slate-900);
+  --color-slate-950: var(--color-app-slate-950);
+
+  --color-brand-50: var(--color-slate-50);
+  --color-brand-100: var(--color-slate-100);
+  --color-brand-200: var(--color-slate-200);
+  --color-brand-300: var(--color-slate-300);
+  --color-brand-400: var(--color-slate-400);
+  --color-brand-500: var(--color-slate-500);
+  --color-brand-600: var(--color-slate-600);
+  --color-brand-700: var(--color-slate-700);
+  --color-brand-800: var(--color-slate-800);
+  --color-brand-900: var(--color-slate-900);
+  --color-brand-950: var(--color-slate-950);
+
+  --color-primary: var(--color-brand-900);
+  --color-primary-foreground: var(--color-brand-50);
+
+  --color-accent-50: var(--accent-shade-50);
+  --color-accent-100: var(--accent-shade-100);
+  --color-accent-200: var(--accent-shade-200);
+  --color-accent-300: var(--accent-shade-300);
+  --color-accent-400: var(--accent-shade-400);
+  --color-accent-500: var(--accent-shade-500);
+  --color-accent-600: var(--accent-shade-600);
+  --color-accent-700: var(--accent-shade-700);
+  --color-accent-800: var(--accent-shade-800);
+  --color-accent-900: var(--accent-shade-900);
+  --color-accent-950: var(--accent-shade-950);
+
+  --color-violet-50: var(--accent-shade-50);
+  --color-violet-100: var(--accent-shade-100);
+  --color-violet-200: var(--accent-shade-200);
+  --color-violet-300: var(--accent-shade-300);
+  --color-violet-400: var(--accent-shade-400);
+  --color-violet-500: var(--accent-shade-500);
+  --color-violet-600: var(--accent-shade-600);
+  --color-violet-700: var(--accent-shade-700);
+  --color-violet-800: var(--accent-shade-800);
+  --color-violet-900: var(--accent-shade-900);
+  --color-violet-950: var(--accent-shade-950);
+
+  --color-indigo-50: var(--accent-shade-50);
+  --color-indigo-100: var(--accent-shade-100);
+  --color-indigo-200: var(--accent-shade-200);
+  --color-indigo-300: var(--accent-shade-300);
+  --color-indigo-400: var(--accent-shade-400);
+  --color-indigo-500: var(--accent-shade-500);
+  --color-indigo-600: var(--accent-shade-600);
+  --color-indigo-700: var(--accent-shade-700);
+  --color-indigo-800: var(--accent-shade-800);
+  --color-indigo-900: var(--accent-shade-900);
+  --color-indigo-950: var(--accent-shade-950);
+}
+
+/* Custom Base Layer Styles */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply font-sans bg-slate-50 text-slate-900 antialiased selection:bg-violet-100 selection:text-violet-900 transition-colors duration-200;
+    scroll-behavior: smooth;
+  }
+
+  /* Keyboard Navigation Focus Indicator */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-violet-500 ring-offset-2 ring-offset-slate-50 dark:ring-offset-slate-950;
+  }
+
+  /* Premium Responsive Custom Scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.3);
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: rgba(71, 85, 105, 0.4);
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(71, 85, 105, 0.6);
+  }
+}
+
+/* Custom Utilities for premium SaaS layout */
+.glassmorphism {
+  @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50;
+}
+
+.overflow-y-auto, .overflow-x-auto {
+  scroll-behavior: smooth;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
