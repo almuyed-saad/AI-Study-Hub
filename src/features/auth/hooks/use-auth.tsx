@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth, googleAuthProvider } from "../../../lib/firebase.ts";
-import firebaseConfig from "../../../../firebase-applet-config.json";
+import { firebaseConfig } from "../../../lib/firebase-config.ts";
 import {
   signInWithPopup,
   signOut,

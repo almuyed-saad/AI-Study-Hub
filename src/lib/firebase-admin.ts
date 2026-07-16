@@ -1,11 +1,25 @@
 import { initializeApp, getApps, App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
-import firebaseConfig from "../../firebase-applet-config.json";
+import fs from "fs";
+import path from "path";
+
+// Dynamically load firebase-applet-config.json if it exists (on the server-side, Node.js)
+let serverFirebaseConfig: { projectId?: string } = {};
+try {
+  const configPath = path.resolve(process.cwd(), "firebase-applet-config.json");
+  if (fs.existsSync(configPath)) {
+    serverFirebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf-8"));
+  }
+} catch (e) {
+  console.warn("[Firebase Admin] Could not dynamically load firebase-applet-config.json:", e);
+}
+
+const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || serverFirebaseConfig.projectId;
 
 // Initialize default app
-if (!getApps().length) {
+if (!getApps().length && projectId) {
   initializeApp({
-    projectId: firebaseConfig.projectId,
+    projectId: projectId,
   });
 }
 

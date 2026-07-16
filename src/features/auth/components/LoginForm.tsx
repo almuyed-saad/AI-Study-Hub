@@ -7,7 +7,7 @@ import { Input } from "../../../components/ui/Input.tsx";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../../../components/ui/Card.tsx";
 import { Mail, Lock, Sparkles, ArrowRight, AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
-import firebaseConfig from "../../../../firebase-applet-config.json";
+import { firebaseConfig } from "../../../lib/firebase-config.ts";
 
 interface LoginFormProps {
   key?: React.Key;

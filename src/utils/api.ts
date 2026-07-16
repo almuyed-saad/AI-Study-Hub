@@ -2,7 +2,7 @@
  * Centralized API Client with Retries, Logging, and Performance Instrumentation
  */
 
-import firebaseConfig from "../../firebase-applet-config.json";
+import { firebaseConfig } from "../lib/firebase-config.ts";
 
 export interface FetchOptions extends RequestInit {
   retries?: number;
