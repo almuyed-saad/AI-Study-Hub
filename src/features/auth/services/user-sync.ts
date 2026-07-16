@@ -28,43 +28,64 @@ export async function getOrCreateUser(data: SyncUserData) {
         const oldUid = existingUser.uid;
 
         await db.transaction(async (tx) => {
-          // Temporarily disable foreign key constraints to perform primary key/reference swap safely
-          await tx.execute(sql`SET session_replication_role = 'replica';`);
+          const tempEmail = `${email}_old_${Date.now()}`;
+          const tempUsername = `${existingUser.username || "user"}_old_${Date.now()}`;
+          
+          // 1. Rename the old user's email and username to free up the unique constraints
+          await tx.execute(sql`UPDATE "users" SET "email" = ${tempEmail}, "username" = ${tempUsername} WHERE "uid" = ${oldUid};`);
 
-          try {
-            // 1. Update the parent user record UID
-            await tx.execute(sql`UPDATE "users" SET "uid" = ${uid} WHERE "uid" = ${oldUid};`);
+          // 2. Insert the new user with the new UID and the correct email, copying all fields from the old user record
+          await tx.execute(sql`
+            INSERT INTO "users" (
+              "uid", "email", "name", "username", "avatar", "email_verified", "onboarding_completed",
+              "role", "account_status", "bio", "university", "department", "semester", "timezone",
+              "theme", "accent_color", "font_size", "layout_density",
+              "notify_study_reminders", "notify_planner_reminders", "notify_assignment_reminders",
+              "notify_ai_notifications", "notify_email_notifications", "ai_default_model",
+              "ai_response_length", "ai_streaming", "ai_explanation_style", "ai_auto_save_conversations",
+              "keyboard_shortcuts_enabled", "auto_save_preferences", "default_landing_page", "language_preference"
+            )
+            SELECT 
+              ${uid}, ${email}, "name", ${existingUser.username || "user"}, "avatar", "email_verified", "onboarding_completed",
+              "role", "account_status", "bio", "university", "department", "semester", "timezone",
+              "theme", "accent_color", "font_size", "layout_density",
+              "notify_study_reminders", "notify_planner_reminders", "notify_assignment_reminders",
+              "notify_ai_notifications", "notify_email_notifications", "ai_default_model",
+              "ai_response_length", "ai_streaming", "ai_explanation_style", "ai_auto_save_conversations",
+              "keyboard_shortcuts_enabled", "auto_save_preferences", "default_landing_page", "language_preference"
+            FROM "users"
+            WHERE "uid" = ${oldUid};
+          `);
 
-            // 2. Update all referencing tables
-            const tables = [
-              "subjects",
-              "notes",
-              "documents",
-              "conversations",
-              "messages",
-              "flashcard_decks",
-              "quizzes",
-              "quiz_attempts",
-              "flashcard_progress",
-              "study_tasks",
-              "notifications",
-              "study_sessions",
-              "assignments",
-              "goals",
-              "exams",
-              "reminders",
-              "ai_study_plans",
-              "ai_recommendations",
-              "ai_revision_plans"
-            ];
+          // 3. Update all referencing tables to point to the new UID
+          const tables = [
+            "subjects",
+            "notes",
+            "documents",
+            "conversations",
+            "messages",
+            "flashcard_decks",
+            "quizzes",
+            "quiz_attempts",
+            "flashcard_progress",
+            "study_tasks",
+            "notifications",
+            "study_sessions",
+            "assignments",
+            "goals",
+            "exams",
+            "reminders",
+            "ai_study_plans",
+            "ai_recommendations",
+            "ai_revision_plans"
+          ];
 
-            for (const tbl of tables) {
-              await tx.execute(sql`UPDATE ${sql.identifier(tbl)} SET "user_id" = ${uid} WHERE "user_id" = ${oldUid};`);
-            }
-          } finally {
-            // Re-enable all foreign key constraints and triggers
-            await tx.execute(sql`SET session_replication_role = 'origin';`);
+          for (const tbl of tables) {
+            await tx.execute(sql`UPDATE ${sql.identifier(tbl)} SET "user_id" = ${uid} WHERE "user_id" = ${oldUid};`);
           }
+
+          // 4. Delete the old user record
+          await tx.execute(sql`DELETE FROM "users" WHERE "uid" = ${oldUid};`);
         });
 
         console.log(`[getOrCreateUser] Migration complete. All academic and study records successfully re-linked to new UID: ${uid}`);

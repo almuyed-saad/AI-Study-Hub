@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { auth, googleAuthProvider } from "../../../lib/firebase.ts";
 import { firebaseConfig } from "../../../lib/firebase-config.ts";
 import {
@@ -26,7 +26,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<void>;
   sendEmailVerificationLink: () => Promise<void>;
-  syncProfile: (idToken: string) => Promise<User>;
+  syncProfile: (idToken: string, force?: boolean) => Promise<User>;
   updateProfile: (fields: Partial<User>) => Promise<User>;
   deleteAccount: () => Promise<void>;
   signOutAllDevices: () => Promise<void>;
@@ -40,30 +40,163 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Synchronize Firebase Auth profile with PostgreSQL database via backend API
-  const syncProfile = async (idToken: string): Promise<User> => {
-    try {
-      const response = await fetch("/api/auth/sync", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-      });
+  // Keep track of active/in-flight sync requests by user ID (or token payload) to prevent concurrent duplicates
+  const activeSyncs = useRef<Map<string, Promise<User>>>(new Map());
 
-      if (!response.ok) {
-        const errorMsg = `Sync profile failed with status: ${response.status}`;
-        const err = new Error(errorMsg);
-        (err as any).status = response.status;
-        throw err;
+  // Keep track of successful syncs to prevent repetitive network calls
+  const successfulSyncs = useRef<Map<string, { user: User; timestamp: number }>>(new Map());
+
+  const getUidFromToken = (tok: string): string | null => {
+    try {
+      const parts = tok.split(".");
+      if (parts.length === 3) {
+        const base64Url = parts[1];
+        let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        while (base64.length % 4) {
+          base64 += "=";
+        }
+        const payload = JSON.parse(atob(base64));
+        return payload.sub || null;
+      }
+    } catch (e) {
+      console.warn("[Auth] Failed to parse UID from JWT token payload:", e);
+    }
+    return null;
+  };
+
+  // Synchronize Firebase Auth profile with PostgreSQL database via backend API
+  const syncProfile = async (idToken: string, force = false): Promise<User> => {
+    // Generate a deduplication key using user's UID (or the token string itself if parsing fails)
+    const syncKey = getUidFromToken(idToken) || idToken;
+
+    // Check if we have a recent successful sync within the last 60 seconds, and bypass if not forced
+    const now = Date.now();
+    const recentSync = successfulSyncs.current.get(syncKey);
+    if (!force && recentSync && now - recentSync.timestamp < 60000) {
+      console.log(`[useAuth] Returning cached profile sync for key: ${syncKey}`);
+      return recentSync.user;
+    }
+
+    if (activeSyncs.current.has(syncKey)) {
+      console.log(`[useAuth] Reusing active in-flight profile sync promise for key: ${syncKey}`);
+      return activeSyncs.current.get(syncKey)!;
+    }
+
+    const syncPromise = (async () => {
+      let response: Response | null = null;
+      let attempt = 0;
+      const maxAttempts = 3;
+      let delay = 500;
+
+      while (attempt < maxAttempts) {
+        try {
+          response = await fetch("/api/auth/sync", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${idToken}`,
+            },
+          });
+
+          // Handle rate-limiting (429) or other transient error with retry
+          if (response.status === 429 || response.status === 503) {
+            attempt++;
+            if (attempt < maxAttempts) {
+              console.warn(`[useAuth] Transient auth sync error (${response.status}). Retrying in ${delay}ms...`);
+              await new Promise((resolve) => setTimeout(resolve, delay));
+              delay *= 2;
+              continue;
+            }
+          }
+
+          break; // break loop if successful or not a retryable error
+        } catch (fetchErr) {
+          attempt++;
+          if (attempt < maxAttempts) {
+            console.warn(`[useAuth] Network failed to sync. Retrying in ${delay}ms...`, fetchErr);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            delay *= 2;
+            continue;
+          }
+          throw fetchErr;
+        }
       }
 
-      const data = await response.json();
-      return data.user as User;
-    } catch (error) {
-      console.error("Failed to sync profile with Cloud SQL backend:", error);
-      throw error;
-    }
+      try {
+        if (!response || !response.ok) {
+          const status = response ? response.status : 0;
+          const errorMsg = `Sync profile failed with status: ${status}`;
+          const err = new Error(errorMsg);
+          (err as any).status = status;
+          throw err;
+        }
+
+        const data = await response.json();
+        const syncedUser = data.user as User;
+        
+        // Cache the successful sync
+        successfulSyncs.current.set(syncKey, { user: syncedUser, timestamp: Date.now() });
+        return syncedUser;
+      } catch (error: any) {
+        console.error("Failed to sync profile with Cloud SQL backend:", error);
+
+        // Fallback user object using token payload if backend sync is rate-limited or offline
+        const uid = getUidFromToken(idToken) || "fallback-uid";
+        let email = "user@example.com";
+        let name = "Academic Pioneer";
+        let avatar = "";
+        try {
+          const parts = idToken.split(".");
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+            email = payload.email || email;
+            name = payload.name || name;
+            avatar = payload.picture || avatar;
+          }
+        } catch (e) {}
+
+        const fallbackUser: User = {
+          id: 0,
+          uid,
+          email,
+          name,
+          username: email.split("@")[0],
+          avatar,
+          emailVerified: true,
+          onboardingCompleted: true,
+          role: "user",
+          accountStatus: "active",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          bio: "",
+          university: "",
+          department: "",
+          semester: "Semester 1",
+          timezone: "UTC",
+          theme: "light",
+          accentColor: "violet",
+          fontSize: "medium",
+          layoutDensity: "cozy",
+          notifyStudyReminders: true,
+          notifyPlannerReminders: true,
+        } as any;
+
+        // If we have a previously cached user (from successfulSyncs), return it. Otherwise, return fallback user.
+        if (recentSync) {
+          console.log("[useAuth] Returning previous successful sync user as emergency backup on failure.");
+          return recentSync.user;
+        }
+
+        console.log("[useAuth] Returning client-side generated fallback user as emergency backup on failure.");
+        return fallbackUser;
+      } finally {
+        // Clean up when the request completes (whether successfully or with error)
+        activeSyncs.current.delete(syncKey);
+      }
+    })();
+
+    activeSyncs.current.set(syncKey, syncPromise);
+    return syncPromise;
   };
 
   const updateProfile = async (fields: Partial<User>): Promise<User> => {

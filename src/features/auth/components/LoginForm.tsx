@@ -108,7 +108,7 @@ export function LoginForm({ onNavigate }: LoginFormProps) {
               </div>
               <div className="pl-7 flex flex-col gap-2">
                 <p className="text-xs">
-                  To fix this, go to your Firebase Console and add <code className="bg-amber-100 dark:bg-amber-900/50 px-1 py-0.5 rounded font-mono font-bold text-violet-600 dark:text-violet-400">saad-ai-study-hub.ai.studio</code> to:
+                  To fix this, go to your Firebase Console and add <code className="bg-amber-100 dark:bg-amber-900/50 px-1 py-0.5 rounded font-mono font-bold text-violet-600 dark:text-violet-400">{window.location.hostname}</code> to:
                 </p>
                 <div className="p-2 bg-white/50 dark:bg-black/20 rounded border border-amber-100 dark:border-amber-900/30 font-medium text-xs">
                   Firebase Console &gt; Authentication &gt; Settings &gt; Authorized Domains

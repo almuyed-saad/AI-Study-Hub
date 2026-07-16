@@ -14,10 +14,10 @@ try {
   console.warn("[Firebase Admin] Could not dynamically load firebase-applet-config.json:", e);
 }
 
-const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || serverFirebaseConfig.projectId;
+const projectId = process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || serverFirebaseConfig.projectId || "placeholder-project-id";
 
 // Initialize default app
-if (!getApps().length && projectId) {
+if (!getApps().length) {
   initializeApp({
     projectId: projectId,
   });
