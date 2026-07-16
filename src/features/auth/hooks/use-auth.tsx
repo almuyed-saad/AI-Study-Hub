@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth, googleAuthProvider } from "../../../lib/firebase.ts";
+import firebaseConfig from "../../../../firebase-applet-config.json";
 import {
   signInWithPopup,
   signOut,
@@ -51,7 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        throw new Error(`Sync profile failed with status: ${response.status}`);
+        const errorMsg = `Sync profile failed with status: ${response.status}`;
+        const err = new Error(errorMsg);
+        (err as any).status = response.status;
+        throw err;
       }
 
       const data = await response.json();
@@ -222,6 +226,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const isTokenProjectValid = (token: string, expectedProjectId: string): boolean => {
+    try {
+      const parts = token.split(".");
+      if (parts.length === 3) {
+        const base64Url = parts[1];
+        let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        while (base64.length % 4) {
+          base64 += "=";
+        }
+        const payload = JSON.parse(atob(base64));
+        return payload.aud === expectedProjectId;
+      }
+    } catch (e) {
+      console.warn("[Auth] Failed to decode JWT token:", e);
+    }
+    return true;
+  };
+
   useEffect(() => {
     let lastUid: string | null = null;
 
@@ -230,6 +252,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user) {
         try {
           const idToken = await user.getIdToken();
+          if (!isTokenProjectValid(idToken, firebaseConfig.projectId)) {
+            console.warn(`[Auth] Audience mismatch detected: expected ${firebaseConfig.projectId}. Clearing stale session.`);
+            try {
+              await signOut(auth);
+            } catch (err) {
+              console.error("[Auth] Failed to sign out:", err);
+            }
+            lastUid = null;
+            setDbUser(null);
+            setToken(null);
+            setFirebaseUser(null);
+            localStorage.removeItem("firebase-token");
+            setLoading(false);
+            return;
+          }
+
           setToken(idToken);
           // Only sync database profile if the user actually changed/just logged in
           if (user.uid !== lastUid) {
@@ -237,8 +275,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const syncedUser = await syncProfile(idToken);
             setDbUser(syncedUser);
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Background auto-sync failed:", error);
+          // Force sign out if the token is stale or unauthorized (such as audience mismatch)
+          if (error?.status === 401 || error?.message?.includes("401")) {
+            console.warn("[Auth] Stale or invalid credentials detected. Forcing Firebase logout.");
+            try {
+              await signOut(auth);
+            } catch (err) {
+              console.error("[Auth] Failed to sign out:", err);
+            }
+            lastUid = null;
+            setDbUser(null);
+            setToken(null);
+            setFirebaseUser(null);
+            localStorage.removeItem("firebase-token");
+          }
         }
       } else {
         lastUid = null;

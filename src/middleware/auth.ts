@@ -1,10 +1,14 @@
 import { Request, Response, NextFunction } from "express";
-import { adminAuth } from "../lib/firebase-admin.ts";
+import { verifyFirebaseToken } from "../lib/firebase-admin.ts";
 import { DecodedIdToken } from "firebase-admin/auth";
+import { getOrCreateUser } from "../features/auth/services/user-sync.ts";
 
 export interface AuthRequest extends Request {
   user?: DecodedIdToken;
 }
+
+// In-memory cache to skip database query overhead for already verified/synced users in the current session
+const syncedUids = new Set<string>();
 
 export const requireAuth = async (
   req: AuthRequest,
@@ -18,8 +22,27 @@ export const requireAuth = async (
 
   const token = authHeader.split("Bearer ")[1];
   try {
-    const decodedToken = await adminAuth.verifyIdToken(token);
+    const decodedToken = await verifyFirebaseToken(token);
     req.user = decodedToken;
+
+    // Self-healing: Ensure user profile is registered and synchronized in PostgreSQL db
+    const { uid, email, name, picture, email_verified } = decodedToken;
+    if (uid && email && !syncedUids.has(uid)) {
+      try {
+        await getOrCreateUser({
+          uid,
+          email,
+          name: name || null,
+          avatar: picture || null,
+          emailVerified: email_verified || false,
+        });
+        syncedUids.add(uid);
+        console.log(`[Auth Middleware] Automatically synchronized and registered user in PostgreSQL: ${email} (${uid})`);
+      } catch (syncError) {
+        console.error(`[Auth Middleware] Background auto-sync failed for user ${uid}:`, syncError);
+      }
+    }
+
     next();
   } catch (error: any) {
     if (error?.code === "auth/id-token-expired" || (error?.message && error.message.includes("expired"))) {

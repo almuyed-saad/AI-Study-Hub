@@ -1,7 +1,8 @@
-import { initializeApp, getApps } from "firebase-admin/app";
+import { initializeApp, getApps, App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import firebaseConfig from "../../firebase-applet-config.json";
 
+// Initialize default app
 if (!getApps().length) {
   initializeApp({
     projectId: firebaseConfig.projectId,
@@ -9,3 +10,58 @@ if (!getApps().length) {
 }
 
 export const adminAuth = getAuth();
+
+/**
+ * Parses the project ID (aud claim) from a JWT token without verifying the signature
+ */
+export const getProjectIdFromToken = (token: string): string | null => {
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const payloadBuf = Buffer.from(parts[1], "base64");
+      const payload = JSON.parse(payloadBuf.toString("utf-8"));
+      return payload.aud || null;
+    }
+  } catch (e) {
+    console.error("[Auth Admin] Failed to parse project ID from token:", e);
+  }
+  return null;
+};
+
+/**
+ * Gets or initializes a Firebase Admin Auth instance for a specific project ID
+ */
+export const getAdminAuthForProject = (projectId: string) => {
+  const apps = getApps();
+  const appName = `app-${projectId}`;
+  
+  let app: App;
+  const existingApp = apps.find((a) => a.name === appName);
+  
+  if (existingApp) {
+    app = existingApp;
+  } else {
+    app = initializeApp(
+      {
+        projectId: projectId,
+      },
+      appName
+    );
+  }
+  
+  return getAuth(app);
+};
+
+/**
+ * Decodes and verifies a Firebase ID token using the appropriate project context
+ */
+export const verifyFirebaseToken = async (token: string) => {
+  const projectId = getProjectIdFromToken(token);
+  if (!projectId) {
+    throw new Error("Invalid token format: no project ID found");
+  }
+
+  // Use the specific project auth instance to verify the token
+  const projectAuth = getAdminAuthForProject(projectId);
+  return await projectAuth.verifyIdToken(token);
+};

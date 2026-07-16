@@ -2,6 +2,8 @@
  * Centralized API Client with Retries, Logging, and Performance Instrumentation
  */
 
+import firebaseConfig from "../../firebase-applet-config.json";
+
 export interface FetchOptions extends RequestInit {
   retries?: number;
   retryDelay?: number;
@@ -155,6 +157,24 @@ export function wrapResponseWithSafeJson(response: Response): Response {
   return response;
 }
 
+const isTokenProjectValid = (token: string, expectedProjectId: string): boolean => {
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const base64Url = parts[1];
+      let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+      while (base64.length % 4) {
+        base64 += "=";
+      }
+      const payload = JSON.parse(atob(base64));
+      return payload.aud === expectedProjectId;
+    }
+  } catch (e) {
+    console.warn("[Global API Monitor] Failed to decode JWT token:", e);
+  }
+  return true;
+};
+
 /**
  * Installs a global fetch interceptor to automatically inject Authorization tokens,
  * retry transient errors, format content-types, and instrument API performance.
@@ -182,7 +202,22 @@ export function setupGlobalFetchInterceptor() {
         if (!headers.has("Authorization")) {
           const cachedToken = localStorage.getItem("firebase-token");
           if (cachedToken) {
-            headers.set("Authorization", `Bearer ${cachedToken}`);
+            if (isTokenProjectValid(cachedToken, firebaseConfig.projectId)) {
+              headers.set("Authorization", `Bearer ${cachedToken}`);
+            } else {
+              console.warn(`[Global API Monitor] Found stale token with mismatching audience. Removing from localStorage.`);
+              localStorage.removeItem("firebase-token");
+            }
+          }
+        } else {
+          // If authorization header is manually specified, double check its audience
+          const authHeader = headers.get("Authorization");
+          if (authHeader && authHeader.startsWith("Bearer ")) {
+            const token = authHeader.split("Bearer ")[1];
+            if (!isTokenProjectValid(token, firebaseConfig.projectId)) {
+              console.warn(`[Global API Monitor] Explicit Bearer token has audience mismatch. Removing header.`);
+              headers.delete("Authorization");
+            }
           }
         }
 
@@ -208,18 +243,32 @@ export function setupGlobalFetchInterceptor() {
             // If unauthorized (401), try to auto-refresh token and retry once
             if (response.status === 401 && attempt === 0) {
               try {
-                const { getAuth } = await import("firebase/auth");
+                const { getAuth, signOut } = await import("firebase/auth");
                 const auth = getAuth();
                 if (auth.currentUser) {
+                  const currentToken = await auth.currentUser.getIdToken();
+                  if (!isTokenProjectValid(currentToken, firebaseConfig.projectId)) {
+                    console.warn("[Global API Monitor] Current user session has audience mismatch. Forcing logout.");
+                    await signOut(auth);
+                    localStorage.removeItem("firebase-token");
+                    return wrapResponseWithSafeJson(response);
+                  }
+
                   console.log("[Global API Monitor] Token unauthorized (401). Attempting dynamic session refresh...");
                   const freshToken = await auth.currentUser.getIdToken(true);
-                  localStorage.setItem("firebase-token", freshToken);
-                  headers.set("Authorization", `Bearer ${freshToken}`);
-                  // Retry fetch with fresh token
-                  const retryResponse = await originalFetch(input, { ...init, headers });
-                  if (retryResponse.ok) {
-                    console.log("[Global API Monitor] Request succeeded after dynamic token refresh!");
-                    return wrapResponseWithSafeJson(retryResponse);
+                  if (isTokenProjectValid(freshToken, firebaseConfig.projectId)) {
+                    localStorage.setItem("firebase-token", freshToken);
+                    headers.set("Authorization", `Bearer ${freshToken}`);
+                    // Retry fetch with fresh token
+                    const retryResponse = await originalFetch(input, { ...init, headers });
+                    if (retryResponse.ok) {
+                      console.log("[Global API Monitor] Request succeeded after dynamic token refresh!");
+                      return wrapResponseWithSafeJson(retryResponse);
+                    }
+                  } else {
+                    console.warn("[Global API Monitor] Refreshed token still has audience mismatch. Forcing logout.");
+                    await signOut(auth);
+                    localStorage.removeItem("firebase-token");
                   }
                 }
               } catch (refreshErr) {

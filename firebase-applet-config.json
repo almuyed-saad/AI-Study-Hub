@@ -1,11 +1,11 @@
 {
-  "projectId": "folkloric-badge-hln7n",
-  "appId": "1:657315790983:web:eb53c8aeecdbbea7807822",
-  "apiKey": "AIzaSyBilh2dgFx5xNAGXhcOrHrRH5mygJcenhY",
-  "authDomain": "folkloric-badge-hln7n.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-aistudyhub-009c8a1d-0b91-44e0-ae66-16b086aa8580",
-  "storageBucket": "folkloric-badge-hln7n.firebasestorage.app",
-  "messagingSenderId": "657315790983",
-  "measurementId": "",
-  "oAuthClientId": "657315790983-74h4hu70dblmv9m5c11sv8thksceqivd.apps.googleusercontent.com"
+  "projectId": "ai-study-hub-272a1",
+  "appId": "1:798041361443:web:6ce43a27583beb081fb596",
+  "apiKey": "AIzaSyA3K82r4dQeQU9nV95h4__wy5RxII6UkWY",
+  "authDomain": "ai-study-hub-272a1.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "ai-study-hub-272a1.firebasestorage.app",
+  "messagingSenderId": "798041361443",
+  "measurementId": "G-VNXBVJVB85",
+  "oAuthClientId": ""
 }

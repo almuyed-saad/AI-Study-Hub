@@ -21,7 +21,7 @@ import {
 } from "./src/features/notes/services/note-service.ts";
 import fs from "fs";
 import multer from "multer";
-import { adminAuth } from "./src/lib/firebase-admin.ts";
+import { adminAuth, verifyFirebaseToken, getAdminAuthForProject } from "./src/lib/firebase-admin.ts";
 import { activeStorageProvider } from "./src/features/documents/services/storage-provider.ts";
 import {
   getDocuments,
@@ -175,9 +175,10 @@ async function startServer() {
   // 2c. POST sign out all devices (backend structure)
   app.post("/api/auth/signout-all", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const { uid } = req.user!;
+      const { uid, aud } = req.user!;
       // Revoke all refresh tokens using firebase-admin SDK
-      await adminAuth.revokeRefreshTokens(uid);
+      const projectAuth = getAdminAuthForProject(aud);
+      await projectAuth.revokeRefreshTokens(uid);
       res.json({ success: true, message: "Successfully revoked all active sessions. Please sign in again." });
     } catch (error: any) {
       console.error("Error revoking sessions:", error);
@@ -188,7 +189,7 @@ async function startServer() {
   // 2d. DELETE user account (Account deletion confirmation flow)
   app.delete("/api/auth/account", requireAuth, async (req: AuthRequest, res) => {
     try {
-      const { uid } = req.user!;
+      const { uid, aud } = req.user!;
       
       // Delete user from drizzle PostgreSQL database
       const { db } = await import("./src/db/index.ts");
@@ -198,7 +199,8 @@ async function startServer() {
       await db.delete(users).where(eq(users.uid, uid));
       
       // Delete user from Firebase auth using firebase-admin SDK
-      await adminAuth.deleteUser(uid);
+      const projectAuth = getAdminAuthForProject(aud);
+      await projectAuth.deleteUser(uid);
       
       res.json({ success: true, message: "Your academic workspace account has been permanently expunged." });
     } catch (error: any) {
@@ -599,7 +601,7 @@ async function startServer() {
         return res.status(401).json({ error: "Unauthorized: Missing authentication token" });
       }
 
-      const decodedToken = await adminAuth.verifyIdToken(token);
+      const decodedToken = await verifyFirebaseToken(token);
       const userId = decodedToken.uid;
 
       const docId = parseInt(req.params.id, 10);
@@ -641,7 +643,7 @@ async function startServer() {
         return res.status(401).json({ error: "Unauthorized: Missing token." });
       }
 
-      const decodedToken = await adminAuth.verifyIdToken(token);
+      const decodedToken = await verifyFirebaseToken(token);
       const userId = decodedToken.uid;
 
       const docId = parseInt(req.params.id, 10);
